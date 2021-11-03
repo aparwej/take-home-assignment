@@ -40,7 +40,7 @@ public class RestServiceSupport {
 	
 	private HttpHeaders buildHttpHeaders(String token, List<MediaType> mediaTypes) {
 		HttpHeaders httpHeaders = new HttpHeaders();
-		httpHeaders.setBearerAuth(token);
+		httpHeaders.set("Authorization", token);
 		httpHeaders.setAccept(mediaTypes);
 		return httpHeaders;
 	}
