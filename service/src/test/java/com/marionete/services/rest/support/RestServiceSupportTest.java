@@ -2,8 +2,6 @@ package com.marionete.services.rest.support;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -29,8 +27,9 @@ public class RestServiceSupportTest {
 
 
 	@Before
-	public void init() throws IOException, InterruptedException {
+	public void init() throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
 		MockitoAnnotations.initMocks(this);
+		restServiceSupport.getClass().getDeclaredField("retryCount").set(restServiceSupport, 3);
 	}
 
 	@Test

@@ -35,7 +35,7 @@ public class LoginServer {
 		});
 	}
 
-	private void stop() throws InterruptedException {
+	public void stop() throws InterruptedException {
 		if (server != null) {
 			server.shutdown();//.awaitTermination(30, TimeUnit.SECONDS);
 		}

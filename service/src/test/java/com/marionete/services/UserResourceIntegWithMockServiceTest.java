@@ -10,8 +10,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -29,8 +29,9 @@ import com.marionete.services.model.UserAccountRequest;
 import com.marionete.services.resources.UserResource;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@TestConfiguration
 @RunWith(SpringRunner.class)
-public class UserResourceIntegTestWithMockService {
+public class UserResourceIntegWithMockServiceTest {
 
 	@Value("${server.port}")
 	Integer port;
@@ -41,13 +42,6 @@ public class UserResourceIntegTestWithMockService {
 	@Autowired
 	RestTemplate restTemplate;
 
-	@Value("${account.service.endpoint}")
-	String accountServiceEndpoint;
-
-	@Value("${user.service.endpoint}")
-	String userServiceEndpoint;
-
-	ObjectMapper mapper = new ObjectMapper();
 	TestRestTemplate testRestTemplate = new TestRestTemplate();
 
 	@Before
@@ -65,22 +59,7 @@ public class UserResourceIntegTestWithMockService {
 		HttpEntity<UserAccountRequest> request = new HttpEntity<>(UserAccountRequestMockFactory.getValidUser(),
 				headers);
 
-		//First few Account Service call will fail as per backend service design. As a result 'useraccount' service response
-		//will not have any value for account number. Server will internally log message for account service unavailability
-		ResponseEntity<UserAccount> postForEntity = testRestTemplate
-				.postForEntity(apiEndPoint, request, UserAccount.class);
-		assertEquals(postForEntity.getStatusCode(), HttpStatus.OK);
-		assertEquals(null, postForEntity.getBody().getAccountInfo().getAccountNumber());
-		assertEquals("John", postForEntity.getBody().getUserInfo().getName());
-
-		postForEntity = testRestTemplate
-				.postForEntity(apiEndPoint, request, UserAccount.class);
-		assertEquals(postForEntity.getStatusCode(), HttpStatus.OK);
-		assertEquals(null, postForEntity.getBody().getAccountInfo().getAccountNumber());
-		assertEquals("Doe", postForEntity.getBody().getUserInfo().getSurname());
-
-		//This Call onwards response with have account details
-		postForEntity = testRestTemplate
+		ResponseEntity<UserAccount>  postForEntity = testRestTemplate
 				.postForEntity(apiEndPoint, request, UserAccount.class);
 		assertEquals(postForEntity.getStatusCode(), HttpStatus.OK);
 		assertEquals("12345-3346-3335-4456", postForEntity.getBody().getAccountInfo().getAccountNumber());

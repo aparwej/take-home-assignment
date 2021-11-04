@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
@@ -27,6 +28,7 @@ import org.springframework.test.web.client.response.MockRestResponseCreators;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.marionete.services.grpc.LoginServer;
 import com.marionete.services.mock.AccountInfoMockFactory;
 import com.marionete.services.mock.UserAccountRequestMockFactory;
 import com.marionete.services.mock.UserInfoMockFactory;
@@ -38,6 +40,7 @@ import com.marionete.services.rest.operation.GetUserAccountOperation;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestConfiguration
 public class UserResourceIntegrationTest {
 
 	@LocalServerPort
@@ -58,6 +61,9 @@ public class UserResourceIntegrationTest {
 	MockRestServiceServer mockServer;
 	ObjectMapper mapper = new ObjectMapper();
 	TestRestTemplate testRestTemplate = new TestRestTemplate();
+
+	@Autowired
+	LoginServer loginService;
 
 	@Before
 	public void init() throws IOException, InterruptedException {
@@ -85,55 +91,24 @@ public class UserResourceIntegrationTest {
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<UserAccountRequest> request = new HttpEntity<>(UserAccountRequestMockFactory.getValidUser(),
-				headers);
 
-		ResponseEntity<UserAccount> postForEntity = testRestTemplate
-				.postForEntity("http://localhost:" + port + "/marionete/useraccount", request, UserAccount.class);
-		assertEquals("11223", postForEntity.getBody().getAccountInfo().getAccountNumber());
-		assertEquals(postForEntity.getStatusCode(), HttpStatus.OK);
-	}
-
-	@Test
-	public void notAuthorizedMessageForInvalidUser() throws Exception {
-
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
+		// Service call with InValid User
 		HttpEntity<UserAccountRequest> request = new HttpEntity<>(UserAccountRequestMockFactory.getInvalidUser(),
 				headers);
-
 		ResponseEntity<UserAccount> postForEntity = testRestTemplate
 				.postForEntity("http://localhost:" + port + "/marionete/useraccount", request, UserAccount.class);
-		assertEquals(null, postForEntity.getBody());
 		assertEquals(postForEntity.getStatusCode(), HttpStatus.UNAUTHORIZED);
-	}
+		assertEquals(null, postForEntity.getBody());
 
-	@Test
-	public void successfulMessageForValidUserAccountServiceFailure() throws Exception {
-
-		mockServer
-				.expect(ExpectedCount.once(),
-						MockRestRequestMatchers
-								.requestTo(new URI(accountServiceEndpoint + new GetAccountInfoOperation().getPath())))
-				.andExpect(MockRestRequestMatchers.method(HttpMethod.GET))
-				.andRespond(MockRestResponseCreators.withStatus(HttpStatus.TOO_MANY_REQUESTS).body(""));
-
-		mockServer
-				.expect(ExpectedCount.once(),
-						MockRestRequestMatchers
-								.requestTo(new URI(userServiceEndpoint + new GetUserAccountOperation().getPath())))
-				.andExpect(MockRestRequestMatchers.method(HttpMethod.GET))
-				.andRespond(MockRestResponseCreators.withStatus(HttpStatus.OK).contentType(MediaType.APPLICATION_JSON)
-						.body(mapper.writeValueAsString(UserInfoMockFactory.getUserInfo())));
-
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		HttpEntity<UserAccountRequest> request = new HttpEntity<>(UserAccountRequestMockFactory.getValidUser(),
-				headers);
-
-		ResponseEntity<UserAccount> postForEntity = testRestTemplate
-				.postForEntity("http://localhost:" + port + "/marionete/useraccount", request, UserAccount.class);
-		assertEquals(null, postForEntity.getBody().getAccountInfo().getAccountNumber());
+		// Service call with Valid User
+		request = new HttpEntity<>(UserAccountRequestMockFactory.getValidUser(), headers);
+		postForEntity = testRestTemplate.postForEntity("http://localhost:" + port + "/marionete/useraccount", request,
+				UserAccount.class);
 		assertEquals(postForEntity.getStatusCode(), HttpStatus.OK);
+		assertEquals(AccountInfoMockFactory.getAccountInfo().getAccountNumber(),
+				postForEntity.getBody().getAccountInfo().getAccountNumber());
+		assertEquals(UserInfoMockFactory.getUserInfo().getName(), postForEntity.getBody().getUserInfo().getName());
+
+		loginService.stop();
 	}
 }
