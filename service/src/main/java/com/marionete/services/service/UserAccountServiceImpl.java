@@ -39,6 +39,7 @@ public class UserAccountServiceImpl implements UserAccountService {
 			return userAccountRepository.getUserAccount(loginToken);
 		});
 
+		CompletableFuture<Void> allFutures = CompletableFuture.allOf(accountInfoFuture,userAccountFuture);
 		try {
 			userAccount.setAccountInfo(accountInfoFuture.get());
 			userAccount.setUserInfo(userAccountFuture.get());
